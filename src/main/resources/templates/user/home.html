@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:v-on="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <title>商城首页</title>
+    <link th:href="@{/css/navbar.css}" rel="stylesheet">
+    <link th:href="@{/css/home.css}" rel="stylesheet">
+    <link th:href="@{/css/element.css}" rel="stylesheet">
+<!--    <script type="text/javascript" th:src="@{/js/home.js}"></script>-->
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .download-link {
+            position: absolute;
+            left: 10px; /* 调整到左侧 */
+            top: 10px; /* 调整到顶部 */
+            display: none;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-size: 12px;
+        }
+        .product:hover .download-link {
+            display: block;
+        }
+        .product {
+            position: relative;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+
+<div th:replace="~{navbar::navbar}"></div>
+<form th:action="@{/item/showAllItem}" method="get">
+    <label>
+        按物品名查找：
+        <input type="text" name="key"/>
+    </label>
+    <input type="submit" value="搜索"/>
+</form>
+<div id="app" class="shops clearfix">
+    <div th:if="${pageItems == null || pageItems.isEmpty()}">
+        <h2 style="text-align: center;">列表为空</h2>
+    </div>
+
+    <div th:each="item:${pageItems}" th:if="${item.status == 1}" class="product">
+        <img th:src="@{/upload/{imgName}(imgName=${item.imgName})}" th:alt="${item.itemName}"
+             onerror="this.onerror=null;this.src='/upload/default.jpg';">
+        <a th:href="@{/item/download(filename=${item.imgName})}" download class="download-link">下载</a>
+        <div class="text">
+            <!--                        <p class="category" th:text="${item.category}"></p>-->
+            <h3 class="title" th:text="${item.itemName}"></h3>
+            <p class="description" th:text="${item.description}"></p>
+            <p class="price" th:text="${item.prices}"></p>
+        </div>
+        <div class="button">
+            <div class="start">
+                <el-button icon="el-icon-goods"
+                   th:@click="|addCarts(${item.itemId})|"></el-button>
+            </div>
+            <div class="buyButton">
+                <form action="chatServlet" method="post">
+                    <input type="hidden" name="productId" th:value="${item.itemId}">
+                    <input type="submit" value="我想要">
+                </form>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+<!--    <div class="pagination">-->
+<!--        <p style="text-align: center">共${itemCount}条记录;  共${pageCount}页;当前第${currentPageIndex}页.</p>-->
+<!--        <p style="text-align: center"><a href="showAllItemServlet?key=${requestScope.key}&pageIndex=1">首页</a>-->
+<!--            <a th:if="${currentPageIndex!=1}" href="showAllItemServlet?key=${requestScope.key}&pageIndex=${currentPageIndex-1}">上一页</a>-->
+<!--            <a th:if="${currentPageIndex!=pageCount}" href="showAllItemServlet?key=${requestScope.key}&pageIndex=${currentPageIndex+1}">下一页</a>-->
+<!--            <a href="showAllItemServlet?key=${requestScope.key}&pageIndex=${pageCount}">尾页</a></p>-->
+<!--    </div>-->
+</body>
+<script th:src="@{/js/vue.js}"></script>
+<script th:src="@{/js/element.js}"></script>
+<script th:inline="javascript">
+    new Vue({
+        el:"#app",
+        data() {
+            return {
+                userId: /*[[${currentUserId}]]*/'',
+            }
+        },
+        methods: {
+            addCarts(itemId){
+
+                const data = {
+                    itemId: itemId,
+                    userId: this.userId
+                };
+
+                // 使用 fetch 发送 POST 请求
+                fetch('/carts/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify(data), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        if (data === "success") {
+                            this.$message({
+                                message: '添加购物车成功！',
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message.error('添加失败！');
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:'+ error);
+                    });
+            }
+        }
+    })
+</script>
+</html>

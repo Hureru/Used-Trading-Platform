@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>我的发布</title>
+    <link th:href="@{/css/element.css}" rel="stylesheet">
+    <link th:href="@{/css/navbar.css}" rel="stylesheet">
+</head>
+<body>
+<div id="app">
+    <div th:replace="~{navbar::navbar}"></div>
+    <template>
+        <el-table
+                ref="multipleTable"
+                :data="tableData"
+                tooltip-effect="dark"
+                style="width: 100%"
+                @selection-change="handleSelectionChange">
+            <el-table-column
+                    type="selection"
+                    width="55">
+            </el-table-column>
+            <el-table-column
+                    label="名称">
+                <template slot-scope="scope">
+                    <el-input
+                            placeholder="请输入内容"
+                            v-model="scope.row.itemName"
+                            :readonly="scope.row.disabled">
+                    </el-input>
+                </template>
+            </el-table-column>
+            <el-table-column
+                    label="类别">
+                <template slot-scope="scope">
+                    <el-select v-model="scope.row.categoryId" :disabled="scope.row.disabled" placeholder="请选择">
+                        <el-option
+                                v-for="item in options"
+                                :key="item.value"
+                                :label="item.text"
+                                :value="item.value">
+                        </el-option>
+                    </el-select>
+                </template>
+            </el-table-column>
+            <el-table-column
+                    label="价格">
+                <template slot-scope="scope">
+                    <el-input
+                            placeholder="请输入内容"
+                            v-model="scope.row.prices"
+                            :readonly="scope.row.disabled">
+                    </el-input>
+                </template>
+            </el-table-column>
+            <el-table-column
+                    label="状态">
+                <template slot-scope="scope">
+                    <el-select v-model="scope.row.status" :disabled="scope.row.disabled" placeholder="请选择">
+                        <el-option
+                                v-for="item in status"
+                                :key="item.value"
+                                :label="item.label"
+                                :value="item.value">
+                        </el-option>
+                    </el-select>
+                </template>
+            </el-table-column>
+            <el-table-column
+                    label="操作"
+                    show-overflow-tooltip>
+                <template slot-scope="scope">
+                    <el-button @click="save(scope.row)" :disabled="scope.row.disabled" type="success" icon="el-icon-check" circle></el-button>
+                    <el-button @click="edit(scope.row)" :disabled="!scope.row.disabled" type="primary" icon="el-icon-edit" circle></el-button>
+                    <el-button @click="deleted(scope.row)" :disabled="!scope.row.disabled" type="danger" icon="el-icon-delete" circle></el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+    </template>
+</div>
+</body>
+<script th:src="@{/js/vue.js}"></script>
+<script th:src="@{/js/element.js}"></script>
+<script th:inline="javascript">
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: /*[[${pageItems}]]*/'',
+                multipleSelection: [],
+                options: /*[[${categoriesList}]]*/'',
+                status: [{
+                    value: 0,
+                    label: '未发布'
+                }, {
+                    value: 1,
+                    label: '已发布'
+                }]
+            }
+        },
+        mounted() {
+            // 页面加载后执行的逻辑
+            this.tableData.forEach(row => {
+                this.$set(row, 'disabled', true);
+            });
+        },
+        methods: {
+            toggleSelection(rows) {
+                if (rows) {
+                    rows.forEach(row => {
+                        this.$refs.multipleTable.toggleRowSelection(row);
+                    });
+                } else {
+                    this.$refs.multipleTable.clearSelection();
+                }
+            },
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            },
+            edit(row){
+                row.disabled = false;
+                console.log(row);
+            },
+            save(row){
+                // 使用 fetch 发送 POST 请求
+                fetch('/item/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify(row), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        if (data === "success") {
+                            this.$message({
+                                message: '保存成功！',
+                                type: 'success'
+                            });
+                        } else {
+                            this.$message.error('保存失败！');
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:'+ error);
+                    });
+                row.disabled = true;
+            },
+            deleted(row){
+                fetch('/item/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify(row), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        if (data === "success") {
+                            this.$message({
+                                message: '删除成功！',
+                                type: 'success'
+                            });
+                            this.tableData.splice(row.index, 1);
+                        } else {
+                            this.$message.error('删除失败！');
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:'+ error);
+                    });
+            }
+        }
+    })
+</script>
+</html>

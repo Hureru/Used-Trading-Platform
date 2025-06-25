@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="https://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>购物车</title>
+    <link rel="stylesheet" th:href="@{/css/element.css}">
+    <link th:href="@{/css/navbar.css}" rel="stylesheet">
+    <style>
+        table {
+            margin: auto 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div th:replace="~{navbar::navbar}"></div>
+    <div style="margin-top: 20px; margin-bottom: 20px;">
+        <el-page-header @back="goBack" content="我的购物车">
+        </el-page-header>
+    </div>
+    <template>
+        <el-table ref="multipleTable"
+                :data="tableData"
+                tooltip-effect="dark"
+                style="width: 100%"
+                @selection-change="handleSelectionChange">
+            <el-table-column type="selection" width="55">
+            </el-table-column>
+            <el-table-column prop="itemName" label="名称" width="160">
+            </el-table-column>
+            <el-table-column label="数量">
+                <template slot-scope="scope">
+                    <el-input-number v-model="scope.row.quantity" size="small"
+                                     @change="(currentValue) => handleChange(currentValue, scope.row.cartsId)"
+                                     :min="1" :max="10"
+                                     label="描述文字"></el-input-number>
+                </template>
+            </el-table-column>
+            <el-table-column label="单价">
+                <template slot-scope="scope">{{ scope.row.prices }}</template>
+            </el-table-column>
+            <el-table-column label="金额">
+                <template slot-scope="scope">{{ scope.row.quantity * scope.row.prices }}</template>
+            </el-table-column>
+            <el-table-column label="操作" show-overflow-tooltip>
+                <template slot-scope="scope">
+                    <el-button @click="deleteItem(scope.row.cartsId, scope.$index)" type="danger"
+                               icon="el-icon-delete"></el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <div style="margin: 20px 20px 20px 20px;">
+            <el-row type="flex" class="row-bg" justify="end">
+                <el-col :span="4">
+                    <el-button type="primary" plain>购买</el-button>
+                </el-col>
+            </el-row>
+        </div>
+    </template>
+</div>
+
+
+</body>
+<script th:src="@{/js/vue.js}"></script>
+<script th:src="@{/js/element.js}"></script>
+<script th:inline="javascript">
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: /*[[${cartsAndItemDTOList}]]*/'',
+                multipleSelection: []
+            }
+        },
+        methods: {
+            toggleSelection(rows) {
+                if (rows) {
+                    rows.forEach(row => {
+                        this.$refs.multipleTable.toggleRowSelection(row);
+                    });
+                } else {
+                    this.$refs.multipleTable.clearSelection();
+                }
+            },
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            },
+            goBack() {
+                console.log('go back');
+            },
+            deleteItem(id, index) {
+                const data = {
+                    cartsId: id
+                };
+                fetch('/carts/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        if (data === "success") {
+                            this.$message({
+                                message: '删除成功！',
+                                type: 'success'
+                            });
+                            this.tableData.splice(index, 1);
+                        } else {
+                            this.$message.error('删除失败！');
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:'+ error);
+                    });
+            },
+            handleChange(value, id){
+                const data = {
+                    cartsId: id,
+                    value: value
+                };
+                fetch('/carts/plusOrMinus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        if (data === "success") {
+                            console.log("成功");
+                        } else {
+                            console.log("失败");
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:', error);
+                    });
+            }
+        }
+    })
+</script>
+</html>

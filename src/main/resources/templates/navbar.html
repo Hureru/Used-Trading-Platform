@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity6">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <div th:fragment="navbar" class="navbar">
+        <div class="navbar-left">
+            <a th:href="@{/item/showAllItem}">首页</a>
+        </div>
+        <span> [[${currentUserId}]][[${#authentication.principal.authorities}]]</span>
+        <div class="navbar-right">
+            <a th:href="@{/item/showMyItem(userId=${currentUserId})}">我的发布</a>
+            <a th:href="@{/item/addItem(userId=${currentUserId})}">我要发布</a>
+            <a th:href="@{/carts/{userId}(userId=${currentUserId})}">购物车</a>
+            <a sec:authorize="hasAuthority('user')" th:href="@{/user/toInformation(userId=${currentUserId})}">个人中心</a>
+            <a th:href="@{/logout}">退出</a>
+        </div>
+    </div>
+
+</body>
+</html>

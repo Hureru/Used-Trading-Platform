@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns="http://www.w3.org/1999/html">
+<head>
+    <meta charset="UTF-8">
+    <title>管理页面</title>
+    <link th:href="@{/css/element.css}" rel="stylesheet">
+    <link th:href="@{/css/navbar.css}" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .navbar {
+            width: 100%;
+            background-color: #333;
+            color: white;
+            padding: 10px 0;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+        }
+
+        /* 主容器 */
+        .main-container {
+            margin-top: 50px; /* navbar的高度 */
+            height: calc(100vh - 50px); /* 视窗高度减去navbar高度 */
+            position: relative;
+        }
+
+        /* tabs容器 */
+        .tabs-container {
+            height: 100%;
+        }
+
+        /* 当使用左侧标签时的样式 */
+        .tabs-container .el-tabs {
+            height: 100%;
+            display: flex;
+        }
+
+        .tabs-container .el-tabs__header {
+            position: sticky;
+            top: 0;
+            background: #fff;
+        }
+
+        .tabs-container .el-tabs__content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .block {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .pagination-container {
+            flex: 1;
+        }
+
+        .button-container {
+            text-align: right;
+        }
+
+        .demo-drawer__content {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+        }
+
+        .demo-drawer__footer {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 10px;
+        }
+
+        .demo-drawer__footer div {
+            unicode-bidi: isolate;
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <div th:replace="~{navbar::navbar}"></div>
+    <template>
+        <div class="main-container">
+            <div class="tabs-container">
+                <el-tabs tab-position="left" @tab-click="handleTabClick">
+                    <el-tab-pane label="物品管理">
+                        <template>
+                            <el-table
+                                    ref="multipleTable"
+                                    :data="tableData.filter(data => !search || data.itemName.toLowerCase().includes(search.toLowerCase()))"
+                                    tooltip-effect="dark"
+                                    height="78vh"
+                                    style="width: 100%"
+                                    @selection-change="handleSelectionChange">
+                                <el-table-column type="selection" width="55">
+                                </el-table-column>
+                                <el-table-column label="名称" width="120">
+                                    <template slot-scope="scope">{{ scope.row.itemName }}</template>
+                                </el-table-column>
+                                <el-table-column prop="prices" label="价格" width="120">
+                                </el-table-column>
+                                <el-table-column label="类型" width="100"
+                                        :filters="categories"
+                                        :filter-method="filterTag"
+                                        filter-placement="bottom-end">
+                                    <template slot-scope="scope">{{ getTextByValue(scope.row.categoryId) }}</template>
+                                </el-table-column>
+                                <el-table-column prop="description" label="描述" show-overflow-tooltip>
+                                </el-table-column>
+                                <el-table-column prop="releaseTime" label="发布时间" show-overflow-tooltip>
+                                </el-table-column>
+                                <el-table-column label="状态" width="90" show-overflow-tooltip>
+                                    <template slot-scope="scope">{{ scope.row.status == 1 ? '已发布' : '未发布' }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column align="right">
+                                    <template slot="header" slot-scope="scope">
+                                        <el-input v-model="search" size="mini" placeholder="输入关键字搜索"/>
+                                    </template>
+                                    <template slot-scope="scope">
+                                        <el-button size="mini"
+                                                @click="openUpdateItemDialog(scope.row)">Edit
+                                        </el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                            <div class="block">
+                                <div class="pagination-container">
+                                    <el-pagination
+                                            @current-change="handleCurrentChange"
+                                            :current-page.sync="currentPage"
+                                            :page-size="pageSize"
+                                            layout="prev, pager, next, jumper"
+                                            :total="total">
+                                    </el-pagination>
+                                </div>
+                                <div class="button-container">
+                                    <el-button
+                                            size="mini"
+                                            type="danger"
+                                            @Click="deleteSelected">
+                                        删除所选
+                                    </el-button>
+                                </div>
+                            </div>
+                        </template>
+                    </el-tab-pane>
+                    <el-tab-pane label="用户管理">
+                        <template>
+                            <el-table
+                                    :data="tableData2.filter(data => !search2 || data.username.toLowerCase().includes(search2.toLowerCase()))"
+                                    height="78vh"
+                                    style="width: 100%">
+                                <el-table-column label="用户名" prop="username" width="80"></el-table-column>
+                                <el-table-column label="昵称" width="130">
+                                    <template slot-scope="scope">{{ scope.row.name || '空' }}</template>
+                                </el-table-column>
+                                <el-table-column label="性别" width="60">
+                                    <template slot-scope="scope">{{ scope.row.gender==1?'男':'女'}}</template>
+                                </el-table-column>
+                                <el-table-column label="电话" prop="tel"></el-table-column>
+                                <el-table-column label="角色" width="70">
+                                    <template slot-scope="scope">{{ scope.row.roleId==0?'用户':'管理员'}}</template>
+                                </el-table-column>
+                                <el-table-column align="right" >
+                                    <template slot="header" slot-scope="scope">
+                                        <el-input v-model="search2"
+                                                  size="mini"
+                                                  placeholder="输入关键字搜索"/>
+                                    </template>
+                                    <template slot-scope="scope">
+                                        <el-button size="mini"
+                                                   @click="handleEdit(scope.$index, scope.row)">
+                                            Edit
+                                        </el-button>
+                                        <el-button size="mini"
+                                                   type="warning"
+                                                   @click="handleResetPW(scope.$index, scope.row)">
+                                            Reset
+                                        </el-button>
+                                        <el-button size="mini"
+                                                   type="danger"
+                                                   @click="handleDelete(scope.$index, scope.row)">
+                                            Delete
+                                        </el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                            <div class="block">
+                                <div class="pagination-container">
+                                    <el-pagination
+                                            @current-change="handleCurrentChange2"
+                                            :current-page.sync="currentPage2"
+                                            :page-size="pageSize2"
+                                            layout="prev, pager, next, jumper"
+                                            :total="total2">
+                                    </el-pagination>
+                                </div>
+                            </div>
+                        </template>
+                    </el-tab-pane>
+                    <el-tab-pane label="类别管理">
+                        <template>
+                            <el-table
+                                    :data="categories"
+                                    style="width: 100%">
+                                <el-table-column
+                                        label="ID"
+                                        prop="value">
+                                </el-table-column>
+                                <el-table-column
+                                        label="类型名"
+                                        prop="text">
+                                </el-table-column>
+                                <el-table-column
+                                        align="right">
+                                    <template slot="header" slot-scope="scope">
+                                        <el-button
+                                                size="mini"
+                                                type="primary"
+                                                @click="handleAdd()">Add</el-button>
+                                    </template>
+                                    <template slot-scope="scope">
+                                        <el-button
+                                                size="mini"
+                                                @click="handleEdit2(scope.$index, scope.row)">Edit</el-button>
+                                        <el-button
+                                                size="mini"
+                                                type="danger"
+                                                @click="handleDelete2(scope.$index, scope.row)">Delete</el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </template>
+                    </el-tab-pane>
+                </el-tabs>
+            </div>
+        </div>
+    </template>
+
+    <el-drawer
+            title="修改物品"
+            :before-close="handleCloseUpdateItem"
+            :visible.sync="itemFormDialog"
+            direction="rtl"
+            custom-class="demo-drawer"
+            ref="drawer">
+        <div class="demo-drawer__content">
+            <el-form :model="itemForm">
+                <el-form-item label="物品名称" :label-width="formLabelWidth">
+                    <el-input v-model="itemForm.itemName"></el-input>
+                </el-form-item>
+                <el-form-item label="价格" :label-width="formLabelWidth">
+                    <el-input v-model="itemForm.prices"></el-input>
+                </el-form-item>
+                <el-form-item label="类别" :label-width="formLabelWidth">
+                    <el-select v-model="itemForm.categoryId" placeholder="请选择类别">
+                        <el-option
+                                v-for="item in categories"
+                                :key="item.value"
+                                :label="item.text"
+                                :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="物品描述" :label-width="formLabelWidth">
+                    <el-input type="textarea" v-model="itemForm.description"></el-input>
+                </el-form-item>
+                <el-form-item label="状态" :label-width="formLabelWidth">
+                    <el-select v-model="itemForm.status" placeholder="请选择状态">
+                        <el-option
+                                v-for="item in status"
+                                :key="item.value"
+                                :label="item.label"
+                                :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <div class="demo-drawer__footer">
+                <el-button @click="cancelForm">取 消</el-button>
+                <el-button type="primary" @click="handleCloseUpdateItem()" :loading="updateItemLoading">{{
+                    updateItemLoading ? '提交中 ...' : '确 定' }}
+                </el-button>
+            </div>
+        </div>
+    </el-drawer>
+    <el-drawer
+            title="修改用户"
+            :before-close="handleCloseUpdateUser"
+            :visible.sync="userFormDialog"
+            direction="rtl"
+            custom-class="demo-drawer"
+            ref="drawer">
+        <div class="demo-drawer__content">
+            <el-form :model="userForm">
+                <el-form-item label="用户名" :label-width="formLabelWidth">
+                    <el-input v-model="userForm.username" readonly></el-input>
+                </el-form-item>
+                <el-form-item label="昵称" :label-width="formLabelWidth">
+                    <el-input v-model="userForm.name"></el-input>
+                </el-form-item>
+                <el-form-item label="性别" :label-width="formLabelWidth">
+                    <el-select v-model="userForm.gender" placeholder="请选择类别">
+                        <el-option
+                                v-for="item in gender"
+                                :key="item.value"
+                                :label="item.text"
+                                :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="电话" :label-width="formLabelWidth">
+                    <el-input v-model="userForm.tel"></el-input>
+                </el-form-item>
+                <el-form-item label="角色" :label-width="formLabelWidth">
+                    <el-select v-model="userForm.roleId" placeholder="请选择角色">
+                        <el-option
+                                v-for="item in role"
+                                :key="item.value"
+                                :label="item.label"
+                                :value="item.value">
+                        </el-option>
+                    </el-select>
+                </el-form-item>
+            </el-form>
+            <div class="demo-drawer__footer">
+                <el-button @click="cancelForm2">取 消</el-button>
+                <el-button type="primary" @click="handleCloseUpdateUser()" :loading="updateUserLoading">{{
+                    updateUserLoading ? '提交中 ...' : '确 定' }}
+                </el-button>
+            </div>
+        </div>
+    </el-drawer>
+
+    <el-dialog :title="dialogTitle" :visible.sync="dialogFormVisible">
+        <el-form :model="categoryForm">
+            <el-form-item label="类型名">
+                <el-input v-model="categoryForm.text" autocomplete="off"></el-input>
+            </el-form-item>
+        </el-form>
+        <div slot="footer" class="dialog-footer">
+            <el-button @click="dialogFormVisible = false">取 消</el-button>
+            <el-button type="primary" @click="updateOrAdd()">确 定</el-button>
+        </div>
+    </el-dialog>
+</div>
+
+
+</body>
+<script th:src="@{/js/vue.js}"></script>
+<script th:src="@{/js/element.js}"></script>
+<script th:inline="javascript">
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                tableData: [],
+                multipleSelection: [],
+                currentPage: 1,
+                pageSize: 20,
+                total: 30,
+                categories: [],
+                search: '',
+                itemFormDialog: false,
+                updateItemLoading: false,
+                itemForm: {},
+                formLabelWidth: '80px',
+                timer: null,
+                status: [
+                    {
+                        value: 0,
+                        label: '未发布'
+                    }, {
+                        value: 1,
+                        label: '已发布'
+                    }],
+                role: [
+                    {
+                        value: 0,
+                        label: '用户'
+                    }, {
+                        value: 1,
+                        label: '管理员'
+                    }],
+                gender: [
+                    {
+                        value: 0,
+                        text: '女'
+                    }, {
+                        value: 1,
+                        text: '男'
+                    }],
+                tableData2: [],
+                currentPage2: 1,
+                pageSize2: 20,
+                total2: 30,
+                search2: '',
+                userFormDialog: false,
+                updateUserLoading: false,
+                userForm: {},
+                dialogTitle: '添加类型',
+                dialogFormVisible: false,
+                categoryForm: {
+                    value: '',
+                    text: '',
+                }
+            };
+        },
+        mounted() {
+            this.getPageItems(1, 20);
+            this.getCategories();
+        },
+        methods: {
+            async handleTabClick(tab, event) {
+                if (tab.label === "物品管理") {
+                    this.getPageItems(this.currentPage, this.pageSize);
+                } else if (tab.label === "用户管理") {
+                    this.getPageUsers(this.currentPage2, this.pageSize2);
+                } else if (tab.label === "类别管理") {
+                    this.getCategories();
+                }
+            },
+            toggleSelection(rows) {
+                if (rows) {
+                    rows.forEach(row => {
+                        this.$refs.multipleTable.toggleRowSelection(row);
+                    });
+                } else {
+                    this.$refs.multipleTable.clearSelection();
+                }
+            },
+            handleSelectionChange(val) {
+                this.multipleSelection = val;
+            },
+            handleCloseUpdateItem(done) {
+                if (this.updateItemLoading) {
+                    return;
+                }
+                this.$confirm('确定要提交表单吗？')
+                    .then(_ => {
+                        this.updateItemLoading = true;
+                        fetch('/item/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json', // 发送 JSON 数据
+                            },
+                            body: JSON.stringify(this.itemForm), // 请求体中的数据，必须转换为 JSON 字符串
+                        })
+                            .then(response => response.text())
+                            .then(data => {
+                                // console.log('响应数据:', data);
+                                if (data === "success") {
+                                    this.$message({
+                                        message: '更新成功！',
+                                        type: 'success'
+                                    });
+                                    this.getPageItems(this.currentPage, this.pageSize);
+                                } else {
+                                    this.$message.error('更新失败！');
+                                }
+                            })
+                            .catch(error => {
+                                this.$message.error('请求错误:' + error);
+                            });
+                        this.updateItemLoading = false;
+                        this.itemFormDialog = false;
+                    })
+                    .catch(_ => {
+                    });
+            },
+            cancelForm() {
+                this.updateItemLoading = false;
+                this.itemFormDialog = false;
+                clearTimeout(this.timer);
+            },
+            openUpdateItemDialog(row) {
+                this.itemForm = JSON.parse(JSON.stringify(row));
+                this.itemFormDialog = true;
+            },
+            handleEdit(index, row) {
+                this.userForm = JSON.parse(JSON.stringify(row));
+                this.userFormDialog = true;
+            },
+            handleDelete(index, row) {
+                fetch('/user/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify(row), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        if (data === "success") {
+                            this.$message({
+                                message: '删除成功！',
+                                type: 'success'
+                            });
+                            this.tableData2.splice(index, 1);
+                        } else {
+                            this.$message.error('删除失败！');
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:' + error);
+                    });
+            },
+            handleCloseUpdateUser(done) {
+                if (this.updateUserLoading) {
+                    return;
+                }
+                this.$confirm('确定要提交表单吗？')
+                    .then(_ => {
+                        this.updateUserLoading = true;
+                        fetch('/user/update', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json', // 发送 JSON 数据
+                            },
+                            body: JSON.stringify(this.userForm), // 请求体中的数据，必须转换为 JSON 字符串
+                        })
+                            .then(response => response.text())
+                            .then(data => {
+                                // console.log('响应数据:', data);
+                                if (data === "success") {
+                                    this.$message({
+                                        message: '更新成功！',
+                                        type: 'success'
+                                    });
+                                    this.getPageUsers(this.currentPage, this.pageSize);
+                                } else {
+                                    this.$message.error('更新失败！');
+                                }
+                            })
+                            .catch(error => {
+                                this.$message.error('请求错误:' + error);
+                            });
+                        this.updateUserLoading = false;
+                        this.userFormDialog = false;
+
+                    })
+                    .catch(_ => {
+                    });
+            },
+            cancelForm2() {
+                this.updateItemLoading = false;
+                this.userFormDialog = false;
+                clearTimeout(this.timer);
+            },
+            openUpdateUserDialog(row) {
+                this.userForm = JSON.parse(JSON.stringify(row));
+                this.userFormDialog = true;
+            },
+            filterTag(value, row) {
+                return row.categoryId === value;
+            },
+            handleCurrentChange(val) {
+                console.log(`当前页: ${val}`);
+                this.getPageItems(val, 20);
+            },
+            handleCurrentChange2(val) {
+                console.log(`当前页: ${val}`);
+                this.getPageUsers(val, 20);
+            },
+            handleResetPW(index, row) {
+                let str = '确定要重置用户 '+row.username+' 的密码吗？';
+                this.$confirm(str)
+                    .then(_ => {
+                        fetch('/user/resetPasswd', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json', // 发送 JSON 数据
+                            },
+                            body: JSON.stringify(row), // 请求体中的数据，必须转换为 JSON 字符串
+                        })
+                            .then(response => response.text())
+                            .then(data => {
+                                // console.log('响应数据:', data);
+                                if (data === "success") {
+                                    this.$message({
+                                        message: '重置成功！',
+                                        type: 'success'
+                                    });
+                                } else {
+                                    this.$message.error('重置失败！');
+                                }
+                            })
+                            .catch(error => {
+                                this.$message.error('请求错误:' + error);
+                            });
+                    })
+                    .catch(_ => {});
+            },
+            deleteSelected() {
+                if (this.multipleSelection.length === 0) {
+                    this.$message.error('选择记录为空！');
+                    return;
+                }
+                console.log(this.multipleSelection);
+                fetch('/item/multipleDelete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify(this.multipleSelection), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        if (data === "success") {
+                            this.$message({
+                                message: '删除成功！',
+                                type: 'success'
+                            });
+                            this.tableData = this.tableData.filter(item =>
+                                !this.multipleSelection.some(selected => selected.itemId === item.itemId)
+                            );
+                        } else {
+                            this.$message.error('删除失败！');
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:' + error);
+                    });
+            },
+            handleAdd() {
+                this.categoryForm = {
+                    value: '',
+                    text: '',
+                };
+                this.dialogTitle = "添加类型";
+                this.dialogFormVisible = true;
+            },
+            updateOrAdd() {
+                fetch('/categories/updateOrAdd', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify(this.categoryForm), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        if (data === "success") {
+                            this.$message({
+                                message: '请求成功！',
+                                type: 'success'
+                            });
+                            this.dialogFormVisible = false;
+                            this.getCategories();
+                        } else {
+                            this.$message.error('请求失败！');
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:' + error);
+                    });
+            },
+            handleEdit2(index, row) {
+                this.dialogTitle = "编辑类型";
+                this.categoryForm = JSON.parse(JSON.stringify(row));
+                this.dialogFormVisible=true;
+            },
+            handleDelete2(index, row) {
+                fetch('/categories/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify(row), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        if (data === "success") {
+                            this.$message({
+                                message: '删除成功！',
+                                type: 'success'
+                            });
+                            this.categories.splice(index, 1);
+                        } else {
+                            this.$message.error('删除失败！');
+                        }
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:' + error);
+                    });
+            },
+            getTextByValue(value) {
+                // 根据 value 查找对应的 text
+                const option = this.categories.find(categories => categories.value === value);
+                return option ? option.text : '未找到对应项';
+            },
+            getCategories() {
+                // 获取所有categories
+                fetch('/categories/getAllCategories', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify(), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        this.categories = data;
+                        console.log(data);
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:' + error);
+                    });
+            },
+            getPageItems(pageNo, pageSize) {
+                // 获取分页Items
+                fetch('/item/getItemsPage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify({
+                        "pageNo": pageNo,
+                        "pageSize": pageSize
+                    }), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        this.tableData = data.records;
+                        this.currentPage = data.current;
+                        this.pageSize = data.size;
+                        this.total = data.total;
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:' + error);
+                    });
+            },
+            getPageUsers(pageNo, pageSize) {
+                // 获取分页Users
+                fetch('/user/getUsersPage', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json', // 发送 JSON 数据
+                    },
+                    body: JSON.stringify({
+                        "pageNo": pageNo,
+                        "pageSize": pageSize
+                    }), // 请求体中的数据，必须转换为 JSON 字符串
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // console.log('响应数据:', data);
+                        this.tableData2 = data.records;
+                        this.currentPage2 = data.current;
+                        this.pageSize2 = data.size;
+                        this.total2 = data.total;
+                    })
+                    .catch(error => {
+                        this.$message.error('请求错误:' + error);
+                    });
+            }
+        }
+    });
+</script>
+</html>

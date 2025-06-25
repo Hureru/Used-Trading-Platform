@@ -1,0 +1,142 @@
+
+h1 {
+    color: #1e90ff;
+}
+form {
+    margin: 20px 0;
+}
+form label {
+    font-weight: bold;
+}
+form input[type="text"] {
+    padding: 8px;
+    margin-left: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+form input[type="submit"] {
+    background-color: #1e90ff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+form input[type="submit"]:hover {
+    background-color: #1c86ee;
+}
+.shops {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+.product {
+    background-color: #fff;
+    padding: 15px;
+    border: 1px solid #dcdcdc;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    width: calc(25% - 30px);
+    box-sizing: border-box;
+}
+.product img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+.product h3 {
+    color: #1e90ff;
+    font-size: 1.2em;
+    margin: 10px 0;
+}
+.product p {
+    margin: 5px 0;
+}
+.product a {
+    margin-right: 10px;
+}
+.pagination {
+    margin: 20px 0;
+    text-align: center;
+}
+.pagination p {
+    margin: 5px 0;
+}
+.pagination a {
+    color: #1e90ff;
+    text-decoration: none;
+    margin: 0 5px;
+}
+.pagination a:hover {
+    text-decoration: underline;
+}
+/*.product {*/
+/*    border: 1px solid #ccc;*/
+/*    border-radius: 8px;*/
+/*    overflow: hidden;*/
+/*    margin: 20px;*/
+/*    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);*/
+/*    background-color: #fff;*/
+/*}*/
+.product img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+.text {
+    padding: 10px;
+    text-align: left;
+}
+.category {
+    font-size: 14px;
+    color: #007bff; /* 蓝色主色调 */
+}
+.title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 10px 0 5px;
+}
+.description {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 10px;
+}
+.price {
+    font-size: 16px;
+    color: #28a745;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+.start, .buyButton {
+    display: inline-block;
+    margin-right: 10px;
+}
+.button {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.start i {
+    font-size: 24px;
+}
+.start {
+    margin-left: 10px;
+}
+.buyButton input[type="submit"] {
+    padding: 5px 10px;
+    font-size: 14px;
+    color: #fff;
+    background-color: #007bff; /* 蓝色主色调 */
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.buyButton input[type="submit"]:hover {
+    background-color: #0056b3; /* 深蓝色，hover时变化 */
+}
+.product img{
+    margin-bottom: 3px;
+}
